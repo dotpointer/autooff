@@ -1,0 +1,52 @@
+#!/bin/bash
+
+LOG="$(dirname $(realpath $0))/log";
+
+LINEFEED=2;
+function console_log() {
+  if [[ ! -f $LOG ]]; then
+    touch $LOG;
+    if [[ $? -ne 0 ]]; then
+      exit 1;
+    fi
+  fi
+  if [[ $LINEFEED -eq 0 ]]; then
+    DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
+    echo -n "$DATENOW - $MSG" >> $LOG
+    LINEFEED=1;
+  elif [[ $LINEFEED -eq 1 ]]; then
+    LINEFEED=2;
+    echo $MSG >> $LOG
+  else
+    DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
+    echo "$DATENOW - $MSG" >> $LOG;
+  fi
+}
+
+for FILE in ./stoppers/*; do
+  if [[ ! -x "${FILE}" ]]; then
+    # echo "${FILE} not executable";
+    continue;
+  fi
+
+  MSG=$(${FILE});
+  RESULT=$?;
+
+  if [[ ! -z $MSG ]]; then
+    MSG="$(basename $FILE), $MSG";
+    console_log;
+  else
+    if [[ $RESULT -ne 0 ]]; then
+      MSG="$(basename $FILE)";
+      console_log
+    fi
+  fi
+
+  if [[ $RESULT -ne 0 ]]; then
+    exit 1;
+  fi
+done
+
+MSG="Off";
+console_log;
+# /sbin/poweroff

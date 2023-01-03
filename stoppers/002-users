@@ -1,0 +1,8 @@
+#!/bin/bash
+
+USERS=$(users);
+
+if [[ ! -z "$USERS" ]]; then
+  echo $USERS | tr '\n' ' ';
+  exit 1;
+fi

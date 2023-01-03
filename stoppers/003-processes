@@ -1,0 +1,16 @@
+#!/bin/bash
+
+GREP="";
+function grep_process() {
+  OUT=$(ps ax|grep "$GREP"|grep -v "grep $GREP")
+  if [[ ! -z "$OUT" ]]; then
+    echo $GREP | xargs;
+    exit 1;
+  fi
+}
+
+GREP="apt "
+grep_process;
+
+GREP="wget"
+grep_process;

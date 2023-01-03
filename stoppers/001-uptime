@@ -1,0 +1,10 @@
+#!/bin/bash
+
+UPTIME=$(</proc/uptime)
+UPTIME=${UPTIME%%.*}
+UPTIMELIMIT=1800;
+
+if [[ $UPTIME -lt $UPTIMELIMIT ]]; then
+  echo "uptime $UPTIME < $UPTIMELIMIT"
+  exit 1;
+fi
