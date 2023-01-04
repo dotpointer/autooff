@@ -2,15 +2,31 @@
 
 GREP="";
 function grep_process() {
-  OUT=$(ps ax|grep "$GREP"|grep -v "grep $GREP")
-  if [[ ! -z "$OUT" ]]; then
+  OUT=$(ps ax -o cmd|grep "/$GREP "|grep -v grep);
+   if [[ ! -z "$OUT" ]]; then
+    echo $OUT;
     echo $GREP | xargs;
     exit 1;
   fi
 }
 
-GREP="apt "
+GREP="apt";
 grep_process;
 
-GREP="wget"
+GREP="cp";
+grep_process;
+
+GREP="dpkg";
+grep_process;
+
+GREP="mv";
+grep_process;
+
+GREP="rm";
+grep_process;
+
+GREP="rsync";
+grep_process;
+
+GREP="wget";
 grep_process;

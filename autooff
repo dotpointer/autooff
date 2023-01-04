@@ -3,6 +3,7 @@
 LOG="$(dirname $(realpath $0))/log";
 
 LINEFEED=2;
+VERBOSE=0;
 function console_log() {
   if [[ ! -f $LOG ]]; then
     touch $LOG;
@@ -12,16 +13,61 @@ function console_log() {
   fi
   if [[ $LINEFEED -eq 0 ]]; then
     DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
+    if [[ $VERBOSE -ne 0 ]]; then
+      echo -n $MSG;
+    fi
     echo -n "$DATENOW - $MSG" >> $LOG
     LINEFEED=1;
   elif [[ $LINEFEED -eq 1 ]]; then
+    if [[ $VERBOSE -ne 0 ]]; then
+      echo $MSG;
+    fi
     LINEFEED=2;
     echo $MSG >> $LOG
   else
     DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
+    if [[ $VERBOSE -ne 0 ]]; then
+      echo $MSG;
+    fi
     echo "$DATENOW - $MSG" >> $LOG;
   fi
 }
+
+DRYRUN=0;
+
+OPTIONS=":dhv"
+
+while getopts ${OPTIONS} arg; do
+  case ${arg} in
+    d)
+      DRYRUN=1
+      ;;
+    h)
+      echo "Usage: $(basename $0) [options]" 2>&1
+      echo 'Options:'
+      echo ' -d   Dry-run, do not shut down'
+      echo ' -h   Print this help'
+      echo ' -v   Be verbose'
+      exit 1
+      ;;
+    v)
+      VERBOSE=1
+      ;;
+    :)
+      echo "$0: An argument for -$OPTARG is required." >&2
+      exit 1
+      ;;
+    ?)
+      echo "Invalid option: -${OPTARG}."
+      exit 2
+      ;;
+  esac
+done
+
+if [[ "$EUID" -ne 0 ]]; then
+  echo "Please run as root"
+  exit 1;
+fi
 
 for FILE in ./stoppers/*; do
   if [[ ! -x "${FILE}" ]]; then
@@ -49,4 +95,6 @@ done
 
 MSG="Off";
 console_log;
-# /sbin/poweroff
+if [[ $DRYRUN -eq 0 ]]; then
+  # /sbin/poweroff
+fi

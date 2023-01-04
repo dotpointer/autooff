@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SMB=$(smbstatus --shares -b 2>&1)
+if [[ ! -z "$SMB" ]]; then
+  echo $SMB | tr '\n' ' ';
+  exit 1;
+fi
+
