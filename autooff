@@ -1,11 +1,13 @@
 #!/bin/bash
 
-LOG="$(dirname $(realpath $0))/log";
+# LOG="";
+# LOG="$(dirname $(realpath $0))/log";
+LOG="/var/log/$(basename $0)";
 
 LINEFEED=2;
 VERBOSE=0;
 function console_log() {
-  if [[ ! -f $LOG ]]; then
+  if [[ ! -z $LOG ]] && [[ ! -f $LOG ]]; then
     touch $LOG;
     if [[ $? -ne 0 ]]; then
       exit 1;
@@ -16,85 +18,112 @@ function console_log() {
     if [[ $VERBOSE -ne 0 ]]; then
       echo -n $MSG;
     fi
-    echo -n "$DATENOW - $MSG" >> $LOG
-    LINEFEED=1;
+    if [[ ! -z $LOG ]]; then
+      echo -n "$DATENOW - $MSG" >> $LOG
+      LINEFEED=1;
+    fi
   elif [[ $LINEFEED -eq 1 ]]; then
     if [[ $VERBOSE -ne 0 ]]; then
       echo $MSG;
     fi
-    LINEFEED=2;
-    echo $MSG >> $LOG
+    if [[ ! -z $LOG ]]; then
+      LINEFEED=2;
+      echo $MSG >> $LOG;
+    fi
   else
     DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
     if [[ $VERBOSE -ne 0 ]]; then
       echo $MSG;
     fi
-    echo "$DATENOW - $MSG" >> $LOG;
+    if [[ ! -z $LOG ]]; then
+      echo "$DATENOW - $MSG" >> $LOG;
+    fi
   fi
 }
 
 DRYRUN=0;
-
-OPTIONS=":dhv"
+OPTIONS=":dhr:v";
+RETRY=0;
 
 while getopts ${OPTIONS} arg; do
   case ${arg} in
     d)
-      DRYRUN=1
+      DRYRUN=1;
       ;;
     h)
-      echo "Usage: $(basename $0) [options]" 2>&1
-      echo 'Options:'
-      echo ' -d   Dry-run, do not shut down'
-      echo ' -h   Print this help'
-      echo ' -v   Be verbose'
-      exit 1
+      echo "Usage: $(basename $0) [options]";
+      echo 'Options:';
+      echo ' -d            Dry-run, do not shut down.';
+      echo ' -h            Print this help.';
+      echo ' -r<seconds>   Retry after <seconds> until shutdown is possible.';
+      echo ' -v            Be verbose.';
+      ;;
+    r)
+      if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 1 ]]; then
+        echo "The retry seconds value must be a positive number.";
+        exit 1;
+      fi
+
+      RETRY=${OPTARG};
       ;;
     v)
-      VERBOSE=1
+      VERBOSE=1;
       ;;
     :)
-      echo "$0: An argument for -$OPTARG is required." >&2
+      echo "$0: An argument for -$OPTARG is required.";
       exit 1
       ;;
     ?)
-      echo "Invalid option: -${OPTARG}."
+      echo "Invalid option: -${OPTARG}.";
       exit 2
       ;;
   esac
 done
 
 if [[ "$EUID" -ne 0 ]]; then
-  echo "Please run as root"
+  echo "Please run as root";
   exit 1;
 fi
 
-for FILE in ./stoppers/*; do
-  if [[ ! -x "${FILE}" ]]; then
-    # echo "${FILE} not executable";
-    continue;
-  fi
+while
+  TOTALRESULT=0;
+  for FILE in ./stoppers/*; do
+    if [[ ! -x "${FILE}" ]]; then
+      # echo "${FILE} not executable";
+      continue;
+    fi
 
-  MSG=$(${FILE});
-  RESULT=$?;
+    MSG=$(${FILE});
+    RESULT=$?;
 
-  if [[ ! -z $MSG ]]; then
-    MSG="$(basename $FILE), $MSG";
-    console_log;
-  else
+    if [[ ! -z $MSG ]]; then
+      MSG="$(basename $FILE), $MSG";
+      console_log;
+    else
+      if [[ $RESULT -ne 0 ]]; then
+        MSG="$(basename $FILE)";
+        console_log;
+      fi
+    fi
+
     if [[ $RESULT -ne 0 ]]; then
-      MSG="$(basename $FILE)";
-      console_log
+      TOTALRESULT=1;
+      break;
+    fi
+  done
+
+  if [[ $TOTALRESULT -eq 0 ]]; then
+    MSG="Off";
+    console_log;
+    # if [[ $DRYRUN -eq 0 ]]; then
+    #   /sbin/poweroff
+    # fi
+    exit $?;
+  else
+    if [[ $RETRY -eq 0 ]]; then
+      exit 1;
+    else
+      sleep $RETRY;
     fi
   fi
-
-  if [[ $RESULT -ne 0 ]]; then
-    exit 1;
-  fi
-done
-
-MSG="Off";
-console_log;
-if [[ $DRYRUN -eq 0 ]]; then
-  # /sbin/poweroff
-fi
+do true; done
