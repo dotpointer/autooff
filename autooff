@@ -3,11 +3,19 @@
 # LOG="";
 # LOG="$(dirname $(realpath $0))/log";
 LOG="/var/log/$(basename $0)";
-
+LOGLEVEL=2;
 LINEFEED=2;
+export MAINBASENAME=$(basename $0);
+MSG="";
+MSGLEVEL=0;
 VERBOSE=0;
+
+if [[ -f "/etc/dptools/$(basename $0)" ]]; then
+  source "/etc/dptools/$(basename $0)";
+fi
+
 function console_log() {
-  if [[ ! -z $LOG ]] && [[ ! -f $LOG ]]; then
+  if [[ ! -z $LOG ]] && [[ ! -f $LOG ]] && [[ $LOGLEVEL -ge $MSGLEVEL ]]; then
     touch $LOG;
     if [[ $? -ne 0 ]]; then
       exit 1;
@@ -15,35 +23,44 @@ function console_log() {
   fi
   if [[ $LINEFEED -eq 0 ]]; then
     DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
-    if [[ $VERBOSE -ne 0 ]]; then
+    if [[ $VERBOSE -ge $MSGLEVEL ]]; then
       echo -n $MSG;
     fi
-    if [[ ! -z $LOG ]]; then
+    if [[ ! -z $LOG ]] && [[ $LOGLEVEL -ge $MSGLEVEL ]]; then
       echo -n "$DATENOW - $MSG" >> $LOG
       LINEFEED=1;
     fi
   elif [[ $LINEFEED -eq 1 ]]; then
-    if [[ $VERBOSE -ne 0 ]]; then
+    if [[ $VERBOSE -ge $MSGLEVEL ]]; then
       echo $MSG;
     fi
-    if [[ ! -z $LOG ]]; then
+    if [[ ! -z $LOG ]] && [[ $LOGLEVEL -ge $MSGLEVEL ]]; then
       LINEFEED=2;
       echo $MSG >> $LOG;
     fi
   else
     DATENOW=$(date +"%Y-%m-%d %H:%M:%S");
-    if [[ $VERBOSE -ne 0 ]]; then
+    if [[ $VERBOSE -ge $MSGLEVEL ]]; then
       echo $MSG;
     fi
-    if [[ ! -z $LOG ]]; then
+    if [[ ! -z $LOG ]] && [[ $LOGLEVEL -ge $MSGLEVEL ]]; then
       echo "$DATENOW - $MSG" >> $LOG;
     fi
   fi
 }
 
 DRYRUN=0;
-OPTIONS=":dhr:v";
+OPTIONS=":dhl:r:v:";
 RETRY=0;
+
+PWD=$(dirname $(realpath $0));
+cd $PWD
+if [[ $? -ne 0 ]]; then
+  MSG="Could not change working directory to $PWD";
+  MSGLEVEL=1;
+  console_log;
+  exit 1;
+fi
 
 while getopts ${OPTIONS} arg; do
   case ${arg} in
@@ -55,19 +72,30 @@ while getopts ${OPTIONS} arg; do
       echo 'Options:';
       echo ' -d            Dry-run, do not shut down.';
       echo ' -h            Print this help.';
+      echo ' -l<0-4>       Log level, 0=none, 1=errors, 2=info (default), 3=debug, 4=deep debug.';
       echo ' -r<seconds>   Retry after <seconds> until shutdown is possible.';
-      echo ' -v            Be verbose.';
+      echo ' -v<0-4>       Verbosity level, 0=none, 1=errors (default), 2=info, 3=debug, 4=deep debug.';
+      ;;
+    l)
+      if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 0 ]]; then
+        echo "The log level value must be a number 0 and up.";
+        exit 1;
+      fi
+      LOGLEVEL=${OPTARG};
       ;;
     r)
       if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 1 ]]; then
         echo "The retry seconds value must be a positive number.";
         exit 1;
       fi
-
       RETRY=${OPTARG};
       ;;
     v)
-      VERBOSE=1;
+      if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 0 ]]; then
+        echo "The verbose value must be a number 0 and up.";
+        exit 1;
+      fi
+      VERBOSE=${OPTARG};
       ;;
     :)
       echo "$0: An argument for -$OPTARG is required.";
@@ -85,9 +113,16 @@ if [[ "$EUID" -ne 0 ]]; then
   exit 1;
 fi
 
+if pidof -x $(basename -- "$0") -o $$ >/dev/null; then
+  MSG="$MAINBASENAME is already running";
+  MSGLEVEL=4;
+  console_log;
+  exit 1;
+fi
+
 while
   TOTALRESULT=0;
-  for FILE in ./stoppers/*; do
+  for FILE in $PWD/stoppers/*; do
     if [[ ! -x "${FILE}" ]]; then
       # echo "${FILE} not executable";
       continue;
@@ -98,10 +133,12 @@ while
 
     if [[ ! -z $MSG ]]; then
       MSG="$(basename $FILE), $MSG";
+      MSGLEVEL=3;
       console_log;
     else
       if [[ $RESULT -ne 0 ]]; then
         MSG="$(basename $FILE)";
+        MSGLEVEL=3;
         console_log;
       fi
     fi
@@ -114,6 +151,7 @@ while
 
   if [[ $TOTALRESULT -eq 0 ]]; then
     MSG="Off";
+    MSGLEVEL=2;
     console_log;
     # if [[ $DRYRUN -eq 0 ]]; then
     #   /sbin/poweroff
@@ -123,6 +161,9 @@ while
     if [[ $RETRY -eq 0 ]]; then
       exit 1;
     else
+      MSG="Retrying in $RETRY seconds";
+      MSGLEVEL=4;
+      console_log;
       sleep $RETRY;
     fi
   fi

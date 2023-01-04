@@ -1,14 +1,19 @@
 #!/bin/bash
 
 GREP="";
+PSAXCMD=$(ps ax -o cmd);
 function grep_process() {
-  OUT=$(ps ax -o cmd|grep "/$GREP "|grep -v grep);
+  OUT=$(echo $PSAXCMD|grep "/$GREP "|grep -v grep);
    if [[ ! -z "$OUT" ]]; then
-    echo $OUT;
     echo $GREP | xargs;
     exit 1;
   fi
 }
+
+
+if [[ ! -z $MAINBASENAME ]] && [[ -f "/etc/dptools/$MAINBASENAME.processes" ]]; then
+  source "/etc/dptools/$MAINBASENAME.processes";
+fi
 
 GREP="apt";
 grep_process;
@@ -19,7 +24,13 @@ grep_process;
 GREP="dpkg";
 grep_process;
 
+GREP="lftp";
+grep_process;
+
 GREP="mv";
+grep_process;
+
+GREP="pacman";
 grep_process;
 
 GREP="rm";
@@ -28,5 +39,11 @@ grep_process;
 GREP="rsync";
 grep_process;
 
+GREP="tar";
+grep_process;
+
 GREP="wget";
+grep_process;
+
+GREP="yum";
 grep_process;
