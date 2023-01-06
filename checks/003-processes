@@ -3,9 +3,9 @@
 GREP="";
 PSAXCMD=$(ps ax -o cmd);
 function grep_process() {
-  OUT=$(echo $PSAXCMD|grep "/$GREP "|grep -v grep);
-   if [[ ! -z "$OUT" ]]; then
-    echo $GREP | xargs;
+  OUT=$(echo "$PSAXCMD"|grep -E "(^|/)$GREP( |$)"|grep -v grep);
+  if [[ ! -z "$OUT" ]]; then
+    echo "$GREP" | xargs;
     exit 1;
   fi
 }
