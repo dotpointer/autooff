@@ -10,8 +10,11 @@ function grep_process() {
   fi
 }
 
+if [[ -z $MAINBASENAME ]]; then
+  MAINBASENAME="autooff";
+fi
 
-if [[ ! -z $MAINBASENAME ]] && [[ -f "/etc/dptools/$MAINBASENAME.processes" ]]; then
+if [[ -f "/etc/dptools/$MAINBASENAME.processes" ]]; then
   source "/etc/dptools/$MAINBASENAME.processes";
 fi
 
@@ -37,6 +40,12 @@ GREP="rm";
 grep_process;
 
 GREP="rsync";
+grep_process;
+
+GREP="scp";
+grep_process;
+
+GREP="screen";
 grep_process;
 
 GREP="tar";
