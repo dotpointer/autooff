@@ -1,12 +1,12 @@
 # Autooff
 
-A script to shutdown the system when certain conditions are met.
+Shutdown or restart when conditions are met.
 
 Made by dotpointer in Bash.
 
 ## How it works
 
-The scripts runs a set of scripts in the stoppers/ directory.
+The scripts runs a set of scripts in the checks/ directory.
 If all of the scripts return a zero return code, then the shutdown continue.
 Otherwise it will halt the shutdown.
 
@@ -15,17 +15,16 @@ Otherwise it will halt the shutdown.
 autooff - Main script
 LICENSE - License
 README.md - This file
-stoppers/001-uptime - Uptime check, at least 30 minutes uptime required
-stoppers/002-users - User check, no logged in users are allowed
-stoppers/003-processes - Processes check, ensure no important processes runs
-stoppers/004-samba - Samba check, no open shares are allowed
+checks/001-uptime - Uptime check, at least 30 minutes uptime required
+checks/002-users - User check, no logged in users are allowed
+checks/003-processes - Processes check, ensure no important processes runs
+checks/004-samba - Samba check, no open shares are allowed
 
 /etc/dptools/autooff - Main configuration
 /etc/dptools/autooff.processes - Processes configuration
 
 /var/log/autooff - Log
 /var/cache/autooff - Cache, contains timestamp of last stopped attempt
-
 
 ## Getting Started
 
@@ -69,7 +68,7 @@ LOGLEVEL=2;
 # set the minimum allowed timeout between retries
 RETRYTIMEOUT=300;
 VERBOSE=0;
-# set the minimum allowed uptime, export is used because it is a stopper file
+# set the minimum allowed uptime, export is used because it is a check file
 export UPTIMELIMIT=900;
 ```
 

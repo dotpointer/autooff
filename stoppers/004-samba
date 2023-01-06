@@ -1,8 +1,0 @@
-#!/bin/bash
-
-SMB=$(smbstatus --shares|grep -v "^IPC\\\$[[:space:]]\+[0-9]\+.*$"|grep -v "^Service[[:space:]]\+pid.*$"|grep -v "^\-\-\-\+.*$"|xargs 2>&1)
-if [[ ! -z "$SMB" ]]; then
-  echo $SMB | tr '\n' ' ';
-  exit 1;
-fi
-
