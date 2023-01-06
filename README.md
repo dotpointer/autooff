@@ -20,6 +20,13 @@ stoppers/002-users - User check, no logged in users are allowed
 stoppers/003-processes - Processes check, ensure no important processes runs
 stoppers/004-samba - Samba check, no open shares are allowed
 
+/etc/dptools/autooff - Main configuration
+/etc/dptools/autooff.processes - Processes configuration
+
+/var/log/autooff - Log
+/var/cache/autooff - Cache, contains timestamp of last stopped attempt
+
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your
@@ -30,7 +37,7 @@ local machine for development and testing purposes.
 What things you need to install the software and how to install them
 
 ```
-- Debian Linux 9 or similar system
+- Debian Linux 11 or similar system
 ```
 
 ### Installing
@@ -52,11 +59,19 @@ A general configuration file can be added to:
 Example of configuration:
 ```
 #!/bin/bash
-LOG="/tmp/log";
-LOGLEVEL=2;
-VERBOSE=0;
-```
 
+# set the cache file location
+CACHE="/var/cache/autooff";
+# set the log file location
+LOG="/var/log/autooff";
+# set the log level
+LOGLEVEL=2;
+# set the minimum allowed timeout between retries
+RETRYTIMEOUT=300;
+VERBOSE=0;
+# set the minimum allowed uptime, export is used because it is a stopper file
+export UPTIMELIMIT=900;
+```
 
 A configuration file for processes can be added to:
 ```

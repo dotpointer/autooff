@@ -1,5 +1,8 @@
 #!/bin/bash
 
+ACTION="o";
+CACHE="/var/cache/$(basename $0)";
+CACHETIMESTAMP=0;
 # LOG="";
 # LOG="$(dirname $(realpath $0))/log";
 LOG="/var/log/$(basename $0)";
@@ -8,10 +11,16 @@ LINEFEED=2;
 export MAINBASENAME=$(basename $0);
 MSG="";
 MSGLEVEL=0;
+RETRYINTERVAL=0;
+RETRYTIMEOUT=0;
 VERBOSE=0;
 
 if [[ -f "/etc/dptools/$(basename $0)" ]]; then
   source "/etc/dptools/$(basename $0)";
+fi
+
+if [[ ! -z $CACHE ]] && [[ -f $CACHE ]]; then
+  CACHETIMESTAMP=$(cat $CACHE);
 fi
 
 function console_log() {
@@ -50,8 +59,7 @@ function console_log() {
 }
 
 DRYRUN=0;
-OPTIONS=":dhl:r:v:";
-RETRY=0;
+OPTIONS=":a:dhi:l:t:v:";
 
 PWD=$(dirname $(realpath $0));
 cd $PWD
@@ -64,17 +72,29 @@ fi
 
 while getopts ${OPTIONS} arg; do
   case ${arg} in
+    a)
+      ACTION=${OPTARG};
+      ;;
     d)
       DRYRUN=1;
       ;;
     h)
       echo "Usage: $(basename $0) [options]";
       echo 'Options:';
-      echo ' -d            Dry-run, do not shut down.';
+      echo ' -a<action>    Action to run, o/p/s=shutdown (default), r=restart.';
+      echo ' -d            Dry-run, do not shutdown.';
       echo ' -h            Print this help.';
+      echo ' -i<seconds>   Retry interval, retry after <seconds> until shutdown is possible, overrides -t.';
       echo ' -l<0-4>       Log level, 0=none, 1=errors, 2=info (default), 3=debug, 4=deep debug.';
-      echo ' -r<seconds>   Retry after <seconds> until shutdown is possible.';
+      echo ' -t<seconds>   Retry timeout, wait at least <seconds> between attempts.';
       echo ' -v<0-4>       Verbosity level, 0=none, 1=errors (default), 2=info, 3=debug, 4=deep debug.';
+      ;;
+    i)
+      if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 1 ]]; then
+        echo "The retry interval value must be a positive number.";
+        exit 1;
+      fi
+      RETRYINTERVAL=${OPTARG};
       ;;
     l)
       if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 0 ]]; then
@@ -83,12 +103,12 @@ while getopts ${OPTIONS} arg; do
       fi
       LOGLEVEL=${OPTARG};
       ;;
-    r)
+    t)
       if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 1 ]]; then
-        echo "The retry seconds value must be a positive number.";
+        echo "The retry timeout value must be a positive number.";
         exit 1;
       fi
-      RETRY=${OPTARG};
+      RETRYTIMEOUT=${OPTARG};
       ;;
     v)
       if [[ ! -n ${OPTARG//[0-9]+/} ]] || [[ ${OPTARG} -lt 0 ]]; then
@@ -118,6 +138,17 @@ if pidof -x $(basename -- "$0") -o $$ >/dev/null; then
   MSGLEVEL=4;
   console_log;
   exit 1;
+fi
+
+if [[ ! -z $CACHE ]] && [[ $RETRYINTERVAL -lt 1 ]] && [[ $RETRYTIMEOUT -gt 0 ]]; then
+  NOWTIMESTAMP=$(date +%s);
+  DIFFTIMESTAMP=$(($NOWTIMESTAMP-$CACHETIMESTAMP));
+  if [[ $DIFFTIMESTAMP -lt $RETRYTIMEOUT ]]; then
+    MSG="Retry timeout $DIFFTIMESTAMP < $RETRYTIMEOUT";
+    MSGLEVEL=4;
+    console_log;
+    exit 1;
+  fi
 fi
 
 while
@@ -150,21 +181,42 @@ while
   done
 
   if [[ $TOTALRESULT -eq 0 ]]; then
-    MSG="Off";
-    MSGLEVEL=2;
-    console_log;
-    # if [[ $DRYRUN -eq 0 ]]; then
-    #   /sbin/poweroff
-    # fi
+    if [[ $ACTION == "o" ]] || [[ $ACTION == "p" ]] || [[ $ACTION == "s" ]]; then
+      MSG="Off";
+      MSGLEVEL=2;
+      console_log;
+      if [[ $DRYRUN -eq 0 ]]; then
+        /sbin/poweroff
+        # echo -n "";
+      fi
+    elif [[ $ACTION == "r" ]]; then
+      MSG="Restart";
+      MSGLEVEL=2;
+      console_log;
+      if [[ $DRYRUN -eq 0 ]]; then
+        /sbin/restart
+        # echo -n "";
+      fi
+    else
+      MSG="Unknown action $ACTION";
+      MSGLEVEL=1;
+      console_log;
+      exit 1;
+    fi
     exit $?;
   else
-    if [[ $RETRY -eq 0 ]]; then
+    if [[ $RETRYINTERVAL -eq 0 ]]; then
+
+      if [[ ! -z $CACHE ]] && [[ $RETRYTIMEOUT -gt 0 ]]; then
+        echo $(date +%s) > $CACHE;
+      fi
+
       exit 1;
     else
-      MSG="Retrying in $RETRY seconds";
+      MSG="Retrying in $RETRYINTERVAL seconds";
       MSGLEVEL=4;
       console_log;
-      sleep $RETRY;
+      sleep $RETRYINTERVAL;
     fi
   fi
 do true; done
