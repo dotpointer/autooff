@@ -1,0 +1,9 @@
+#!/bin/bash
+
+zpool status|grep -zqv "scrub in progress" > /dev/null;
+if [[ $? -ne 0 ]]; then
+  echo 'zfs scrub';
+  exit 1;
+else
+  exit 0;
+fi
