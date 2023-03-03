@@ -59,7 +59,7 @@ function console_log() {
 }
 
 DRYRUN=0;
-OPTIONS=":a:dhi:l:t:v:";
+OPTIONS=":a:cdhi:l:t:v:";
 
 PWD=$(dirname $(realpath $0));
 cd $PWD
@@ -75,6 +75,34 @@ while getopts ${OPTIONS} arg; do
     a)
       ACTION=${OPTARG};
       ;;
+    c)
+      TOTALRESULT=0;
+      PASSED=0;
+      FAILED=0;
+      echo "Return code, filename, message"
+      STARTED=$(date +%s);
+      for FILE in $PWD/checks/*; do
+        if [[ ! -x "${FILE}" ]]; then
+          continue;
+        fi
+        MSG=$(${FILE});
+        RESULT=$?;
+        if [[ $RESULT -ne 0 ]]; then
+          TOTALRESULT=1;
+          FAILED=$((FAILED + 1));
+        else
+          PASSED=$((PASSED + 1));
+        fi
+        if [[ ! -z $MSG ]]; then
+          MSG=", $MSG";
+        fi
+        echo "$RESULT, $(basename $FILE)$MSG";
+      done
+      ENDED=$(date +%s);
+      TOTALTIME=$(($ENDED - $STARTED))
+      echo "$PASSED passed, $FAILED failed in ${TOTALTIME}s";
+      exit $TOTALRESULT;
+      ;;
     d)
       DRYRUN=1;
       ;;
@@ -82,6 +110,9 @@ while getopts ${OPTIONS} arg; do
       echo "Usage: $(basename $0) [options]";
       echo 'Options:';
       echo ' -a<action>    Action to run, o/p/s=shutdown (default), r=restart.';
+      echo ' -c            Run all executable checks and print the results as return code,';
+      echo '               filename and message.';
+      echo '               Checks must return with code 0 to pass.';
       echo ' -d            Dry-run, do not shutdown.';
       echo ' -h            Print this help.';
       echo ' -i<seconds>   Retry interval, retry after <seconds> until shutdown is possible, overrides -t.';

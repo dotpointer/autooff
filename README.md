@@ -19,6 +19,7 @@ checks/001-uptime - Uptime check, at least 30 minutes uptime required
 checks/002-users - User check, no logged in users are allowed
 checks/003-processes - Processes check, ensure no important processes runs
 checks/004-samba - Samba check, no open shares are allowed
+checks/005-zfs - ZFS check, no running scrubs are allowed
 
 /etc/dptools/autooff - Main configuration
 /etc/dptools/autooff.processes - Processes configuration
@@ -89,7 +90,7 @@ grep_process;
 
 ## Usage
 
-Run autooff, either directly or through a cron job. Run with the -h argument to show options.
+Run autooff, either directly or through a cron job. Run with the -h argument to show options and -c to run the checks and output the results.
 
 A log file is written to the following location by default:
 ```

@@ -4,7 +4,7 @@ command -v smbstatus > /dev/null;
 if [[ $? -eq 0 ]]; then
   SMB=$(smbstatus --shares|grep -v "^IPC\\\$[[:space:]]\+[0-9]\+.*$"|grep -v "^Service[[:space:]]\+pid.*$"|grep -v "^\-\-\-\+.*$"|xargs 2>&1)
   if [[ ! -z "$SMB" ]]; then
-    echo $SMB | tr '\n' ' ';
+    echo $SMB | tr '\n' ' ' | xargs;
     exit 1;
   fi
 else

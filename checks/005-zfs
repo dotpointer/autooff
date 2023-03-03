@@ -1,5 +1,10 @@
 #!/bin/bash
 
+command -v zpool  &> /dev/null;
+if [[ $? -ne 0 ]]; then
+  exit 0;
+fi
+
 zpool status|grep -zqv "scrub in progress" > /dev/null;
 if [[ $? -ne 0 ]]; then
   echo 'zfs scrub';
