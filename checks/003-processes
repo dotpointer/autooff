@@ -27,6 +27,9 @@ grep_process;
 GREP="dpkg";
 grep_process;
 
+GREP="httrack";
+grep_process;
+
 GREP="lftp";
 grep_process;
 
