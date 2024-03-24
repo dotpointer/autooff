@@ -33,6 +33,9 @@ grep_process;
 GREP="lftp";
 grep_process;
 
+GREP="md5deep";
+grep_process;
+
 GREP="mv";
 grep_process;
 
