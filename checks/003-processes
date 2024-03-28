@@ -21,10 +21,25 @@ fi
 GREP="apt";
 grep_process;
 
+GREP="cfdisk";
+grep_process;
+
 GREP="cp";
 grep_process;
 
+GREP="dd";
+grep_process;
+
 GREP="dpkg";
+grep_process;
+
+GREP="fdisk";
+grep_process;
+
+GREP="gparted";
+grep_process;
+
+GREP="gpartedbin";
 grep_process;
 
 GREP="httrack";
@@ -42,17 +57,23 @@ grep_process;
 GREP="pacman";
 grep_process;
 
+GREP="parted";
+grep_process;
+
 GREP="rm";
 grep_process;
 
 GREP="rsync";
 grep_process;
 
+GREP="sgdisk";
+grep_process;
+
 GREP="scp";
 grep_process;
 
-GREP="screen";
-grep_process;
+# GREP="screen";
+# grep_process;
 
 GREP="tar";
 grep_process;
